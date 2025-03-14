@@ -222,7 +222,7 @@ struct SessionBackupManagerView: View {
     private func performDeleteAll() {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
-        let controller = textAlertController(context: context, title: "SessionBackup.DeleteAllBackups".i18n(lang), text: "SessionBackup.DeleteAllBackups.Subtitle".i18n(lang), actions: [
+        let controller = textAlertController(context: context, title: "SessionBackup.DeleteAll.Title".i18n(lang), text: "SessionBackup.DeleteAll.Text".i18n(lang), actions: [
             TextAlertAction(type: .destructiveAction, title: presentationData.strings.Common_Delete, action: {
                 let controller = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
                 wrapperController?.present(controller, in: .window(.root), with: nil)
