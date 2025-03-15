@@ -193,8 +193,8 @@
 
 "PayWall.Text" = "Supercharged with Pro features";
 
-"PayWall.SessionBackup.Title" = "Session Backup";
-"PayWall.SessionBackup.Notice" = "Restore sessions from encrypted local Apple Keychain backup.";
+"PayWall.SessionBackup.Title" = "Accounts Backup";
+"PayWall.SessionBackup.Notice" = "Log-in to accounts without code, even after reinstall. Secure storage with on-device Keychain.";
 
 "PayWall.MessageFilter.Title" = "Message Filter";
 "PayWall.MessageFilter.Notice" = "Reduce visibility of SPAM, promotions and annoying messages.";
@@ -203,7 +203,7 @@
 "PayWall.Notifications.Notice" = "Hide or mute non-important notifications.";
 
 "PayWall.InputToolbar.Title" = "Formatting Panel";
-"PayWall.InputToolbar.Notice" = "Save time preparing your posts with a panel right above your keyboard.";
+"PayWall.InputToolbar.Notice" = "Save time formatting messages with just a single tap.";
 
 "PayWall.AppIcons.Title" = "Unique App Icons";
 "PayWall.AppIcons.Notice" = "Customize Swiftgram look on your home screen.";
