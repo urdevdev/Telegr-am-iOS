@@ -227,6 +227,7 @@
 "PayWall.Button.Restoring" = "Restoring Purchases...";
 "PayWall.Button.Validating" = "Validating Purchase...";
 "PayWall.Button.PaymentsUnavailable" = "Payments unavailable";
+"PayWall.Button.BuyInAppStore" = "Subscribe in App Store version";
 "PayWall.Button.Subscribe" = "Subscribe for %@ / month";
 "PayWall.Button.ContactingAppStore" = "Contacting App Store...";
 

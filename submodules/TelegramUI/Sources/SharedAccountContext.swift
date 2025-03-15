@@ -3624,7 +3624,8 @@ extension SharedAccountContextImpl {
         }
 
         let proController = self.makeSGProController(context: context)
-        let payWallController = sgPayWallController(statusSignal: statusSignal, replacementController: proController, presentationData: self.currentPresentationData.with { $0 }, SGIAPManager: sgIAP, openUrl: self.applicationBindings.openUrl, paymentsEnabled: context.currentAppConfiguration.with { $0 }.sgWebSettings.global.paymentsEnabled)
+        let sgWebSettings = context.currentAppConfiguration.with { $0 }.sgWebSettings
+        let payWallController = sgPayWallController(statusSignal: statusSignal, replacementController: proController, presentationData: self.currentPresentationData.with { $0 }, SGIAPManager: sgIAP, openUrl: self.applicationBindings.openUrl, paymentsEnabled: sgWebSettings.global.paymentsEnabled, canBuyInBeta: sgWebSettings.user.canBuyInBeta, openAppStorePage: self.applicationBindings.openAppStorePage)
         return payWallController
     }
     

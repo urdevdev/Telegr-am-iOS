@@ -13,7 +13,7 @@ import TelegramUIPreferences
 
 
 @available(iOS 13.0, *)
-public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacementController: ViewController, presentationData: PresentationData? = nil, SGIAPManager: SGIAPManager, openUrl: @escaping (String) -> Void, paymentsEnabled: Bool) -> ViewController {
+public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacementController: ViewController, presentationData: PresentationData? = nil, SGIAPManager: SGIAPManager, openUrl: @escaping (String) -> Void, paymentsEnabled: Bool, canBuyInBeta: Bool, openAppStorePage: @escaping () -> Void) -> ViewController {
     //    let theme = presentationData?.theme ?? (UITraitCollection.current.userInterfaceStyle == .dark ? defaultDarkColorPresentationTheme : defaultPresentationTheme)
     let theme = defaultDarkColorPresentationTheme
     let strings = presentationData?.strings ?? defaultPresentationStrings
@@ -30,7 +30,7 @@ public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacemen
     let swiftUIView = SGSwiftUIView<SGPayWallView>(
         legacyController: legacyController,
         content: {
-            SGPayWallView(wrapperController: legacyController, replacementController: replacementController, SGIAP: SGIAPManager, statusSignal: statusSignal, openUrl: openUrl, paymentsEnabled: paymentsEnabled)
+            SGPayWallView(wrapperController: legacyController, replacementController: replacementController, SGIAP: SGIAPManager, statusSignal: statusSignal, openUrl: openUrl, openAppStorePage: openAppStorePage, paymentsEnabled: paymentsEnabled, canBuyInBeta: canBuyInBeta)
         }
     )
     let controller = UIHostingController(rootView: swiftUIView, ignoreSafeArea: true)
@@ -106,7 +106,9 @@ struct SGPayWallView: View {
     let SGIAP: SGIAPManager
     let statusSignal: Signal<Int64, NoError>
     let openUrl: (String) -> Void
+    let openAppStorePage: () -> Void
     let paymentsEnabled: Bool
+    let canBuyInBeta: Bool
     
     private enum PayWallState: Equatable {
         case ready // ready to buy
@@ -405,6 +407,8 @@ struct SGPayWallView: View {
             } else if let product = product {
                 if !SGIAP.canMakePayments || paymentsEnabled == false {
                     return "PayWall.Button.PaymentsUnavailable".i18n(lang)
+                } else if Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !canBuyInBeta {
+                    return "PayWall.Button.BuyInAppStore".i18n(lang)
                 } else {
                     return "PayWall.Button.Subscribe".i18n(lang, args: product.price)
                 }
@@ -430,9 +434,13 @@ struct SGPayWallView: View {
         if currentStatus > 1 {
             wrapperController?.replace(with: replacementController)
         } else {
-            guard let product = product else { return }
-            state = .purchasing
-            SGIAP.buyProduct(product.skProduct)
+            if Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" && !canBuyInBeta {
+                openAppStorePage()
+            } else {
+                guard let product = product else { return }
+                state = .purchasing
+                SGIAP.buyProduct(product.skProduct)
+            }
         }
     }
     
