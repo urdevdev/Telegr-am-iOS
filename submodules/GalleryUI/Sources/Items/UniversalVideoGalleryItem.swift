@@ -2873,9 +2873,6 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                 useNative = false
             }
         }
-        if SGSimpleSettings.shared.videoPIPSwipeDirection != SGSimpleSettings.VideoPIPSwipeDirection.up.rawValue {
-            useNative = false
-        }
         if !useNative {
             return
         }
