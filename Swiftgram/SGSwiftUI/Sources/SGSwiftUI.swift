@@ -413,6 +413,21 @@ public enum BackgroundMaterial {
     }
 }
 
+public enum BounceBehavior {
+    case automatic
+    case always
+    case basedOnSize
+    
+    @available(iOS 16.4, *)
+    var behavior: ScrollBounceBehavior {
+        switch self {
+        case .automatic: return .automatic
+        case .always: return .always
+        case .basedOnSize: return .basedOnSize
+        }
+    }
+}
+
 
 @available(iOS 13.0, *)
 public extension View {
@@ -435,5 +450,64 @@ public extension View {
                     .overlay(Color.white.opacity(0.1))
             )
         }
+    }
+}
+
+@available(iOS 13.0, *)
+public extension View {
+    func scrollBounceBehaviorIfAvailable(_ behavior: BounceBehavior) -> some View {
+        if #available(iOS 16.4, *) {
+            return self.scrollBounceBehavior(behavior.behavior)
+        } else {
+            return self
+        }
+    }
+}
+
+@available(iOS 13.0, *)
+public extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+@available(iOS 13.0, *)
+public struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    
+    public func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
+    }
+}
+
+@available(iOS 13.0, *)
+public struct ContentSizeModifier: ViewModifier {
+    @Binding var size: CGSize
+    
+    public func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader { geometry -> Color in
+                    if geometry.size != size {
+                        DispatchQueue.main.async {
+                            self.size = geometry.size
+                        }
+                    }
+                    return Color.clear
+                }
+            )
+    }
+}
+
+@available(iOS 13.0, *)
+public extension View {
+    func trackSize(_ size: Binding<CGSize>) -> some View {
+        self.modifier(ContentSizeModifier(size: size))
     }
 }

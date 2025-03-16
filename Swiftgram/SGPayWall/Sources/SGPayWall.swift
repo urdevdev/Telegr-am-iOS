@@ -13,7 +13,7 @@ import TelegramUIPreferences
 
 
 @available(iOS 13.0, *)
-public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacementController: ViewController, presentationData: PresentationData? = nil, SGIAPManager: SGIAPManager, openUrl: @escaping (String) -> Void, paymentsEnabled: Bool, canBuyInBeta: Bool, openAppStorePage: @escaping () -> Void) -> ViewController {
+public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacementController: ViewController, presentationData: PresentationData? = nil, SGIAPManager: SGIAPManager, openUrl: @escaping (String, Bool) -> Void /* url, forceExternal */, paymentsEnabled: Bool, canBuyInBeta: Bool, openAppStorePage: @escaping () -> Void, proSupportUrl: String?) -> ViewController {
     //    let theme = presentationData?.theme ?? (UITraitCollection.current.userInterfaceStyle == .dark ? defaultDarkColorPresentationTheme : defaultPresentationTheme)
     let theme = defaultDarkColorPresentationTheme
     let strings = presentationData?.strings ?? defaultPresentationStrings
@@ -26,11 +26,12 @@ public func sgPayWallController(statusSignal: Signal<Int64, NoError>, replacemen
     //    legacyController.displayNavigationBar = false
     legacyController.statusBar.statusBarStyle = .White
     legacyController.attemptNavigation = { _ in return false }
+    legacyController.view.disablesInteractiveTransitionGestureRecognizer = true
     
     let swiftUIView = SGSwiftUIView<SGPayWallView>(
         legacyController: legacyController,
         content: {
-            SGPayWallView(wrapperController: legacyController, replacementController: replacementController, SGIAP: SGIAPManager, statusSignal: statusSignal, openUrl: openUrl, openAppStorePage: openAppStorePage, paymentsEnabled: paymentsEnabled, canBuyInBeta: canBuyInBeta)
+            SGPayWallView(wrapperController: legacyController, replacementController: replacementController, SGIAP: SGIAPManager, statusSignal: statusSignal, openUrl: openUrl, openAppStorePage: openAppStorePage, paymentsEnabled: paymentsEnabled, canBuyInBeta: canBuyInBeta, proSupportUrl: proSupportUrl)
         }
     )
     let controller = UIHostingController(rootView: swiftUIView, ignoreSafeArea: true)
@@ -96,6 +97,226 @@ struct BackgroundView: View {
 
 
 @available(iOS 13.0, *)
+struct SGPayWallFeatureDetails: View {
+    
+    let dismissAction: () -> Void
+    var bottomOffset: CGFloat = 0.0
+    let contentHeight: CGFloat = 690.0
+    let features: [SGProFeature]
+    
+    @State var shownFeature: SGProFeatureId?
+     // Add animation states
+    @State private var showBackground = false
+    @State private var showContent = false
+    
+    @State private var dragOffset: CGFloat = 0
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Background overlay
+            if showBackground {
+                Color.black.opacity(0.4)
+                    .zIndex(0)
+                    .edgesIgnoringSafeArea(.all)
+                    .onTapGesture {
+                        dismissWithAnimation()
+                    }
+                    .transition(.opacity)
+            }
+            
+            // Bottom sheet content
+            if showContent {
+                VStack {
+                    if #available(iOS 14.0, *) {
+                        TabView(selection: $shownFeature) {
+                            ForEach(features) { feature in
+                                ScrollView(showsIndicators: false) {
+                                    SGProFeatureView(
+                                        feature: feature
+                                    )
+                                    Color.clear.frame(height: 8.0) // paginator padding
+                                }
+                                .tag(feature.id)
+                                .scrollBounceBehaviorIfAvailable(.basedOnSize)
+                            }
+                        }
+                        .tabViewStyle(.page)
+                        .padding(.bottom, bottomOffset - 8.0)
+                    }
+                    
+                    // Spacer for purchase buttons
+                    if !bottomOffset.isZero {
+                        Color.clear.frame(height: bottomOffset)
+                    }
+                }
+                .zIndex(1)
+                .frame(maxHeight: contentHeight)
+                .background(Color(.black))
+                .cornerRadius(8, corners: [.topLeft, .topRight])
+                .overlay(closeButtonView)
+                .offset(y: max(0, dragOffset))
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            // Only track downward movement
+                            if value.translation.height > 0 {
+                                dragOffset = value.translation.height
+                            }
+                        }
+                        .onEnded { value in
+                            // If dragged down more than 150 points or with significant velocity, dismiss
+                            if value.translation.height > 150 || value.predictedEndTranslation.height > 200 {
+                                dismissWithAnimation()
+                            } else {
+                                // Otherwise, reset position
+                                withAnimation(.spring()) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+                .transition(.move(edge: .bottom))
+            }
+        }
+        .onAppear {
+            appearWithAnimation()
+        }
+    }
+    
+    private func appearWithAnimation() {
+        withAnimation(.easeIn(duration: 0.2)) {
+            showBackground = true
+        }
+        
+        withAnimation(.spring(duration: 0.3)/*.delay(0.1)*/) {
+            showContent = true
+        }
+    }
+    
+    private func dismissWithAnimation() {
+        withAnimation(.spring()) {
+            showContent = false
+            dragOffset = 0
+        }
+        
+        withAnimation(.easeOut(duration: 0.2).delay(0.1)) {
+            showBackground = false
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            dismissAction()
+        }
+    }
+    
+    private var closeButtonView: some View {
+        Button(action: {
+            dismissWithAnimation()
+        }) {
+            Image(systemName: "xmark")
+                .font(.headline)
+                .foregroundColor(.secondary.opacity(0.6))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle()) // Improve tappable area
+        }
+        .opacity(showContent ? 1.0 : 0.0)
+        .padding([.top, .trailing], 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    }
+}
+
+
+@available(iOS 13.0, *)
+struct SGProFeatureView: View {
+    let feature: SGProFeature
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            feature.image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: 400.0, alignment: .top)
+                .clipped()
+            
+            VStack(alignment: .center, spacing: 8) {
+                Text(feature.title)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.center)
+                Text(featureSubtitle)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal)
+
+            Spacer()
+        }
+    }
+    
+    var featureSubtitle: String {
+        return feature.description ?? feature.subtitle
+    }
+}
+
+enum SGProFeatureId: Hashable {
+    case backup
+    case filter
+    case notifications
+    case toolbar
+    case icons
+}
+
+
+@available(iOS 13.0, *)
+struct SGProFeature: Identifiable {
+    
+    let id: SGProFeatureId
+    let title: String
+    let subtitle: String
+    let description: String?
+    
+    @ViewBuilder
+    public var icon: some View {
+        switch (id) {
+        case .backup:
+            FeatureIcon(icon: "lock.fill", backgroundColor: .blue)
+        case .filter:
+            FeatureIcon(icon: "nosign", backgroundColor: .gray, fontWeight: .bold)
+        case .notifications:
+            FeatureIcon(icon: "bell.badge.slash.fill", backgroundColor: .red)
+        case .toolbar:
+            FeatureIcon(icon: "bold.underline", backgroundColor: .blue, iconSize: 16)
+        case .icons:
+            Image("SwiftgramSettings")
+                .resizable()
+                .frame(width: 32, height: 32)
+        @unknown default:
+            Image("SwiftgramPro")
+                .resizable()
+                .frame(width: 32, height: 32)
+        }
+    }
+
+    public var image: Image {
+        switch (id) {
+        case .backup:
+            return Image("ProDetailsBackup")
+        case .filter:
+            return Image("ProDetailsFilter")
+        case .notifications:
+            return Image("ProDetailsMute")
+        case .toolbar:
+            return Image("ProDetailsFormatting")
+        case .icons:
+            return Image("ProDetailsIcons")
+        @unknown default:
+            return Image("pro")
+        }
+    }
+}
+
+
+@available(iOS 13.0, *)
 struct SGPayWallView: View {
     @Environment(\.navigationBarHeight) var navigationBarHeight: CGFloat
     @Environment(\.containerViewLayout) var containerViewLayout: ContainerViewLayout?
@@ -105,10 +326,11 @@ struct SGPayWallView: View {
     let replacementController: ViewController
     let SGIAP: SGIAPManager
     let statusSignal: Signal<Int64, NoError>
-    let openUrl: (String) -> Void
+    let openUrl: (String, Bool) -> Void // url, forceExternal
     let openAppStorePage: () -> Void
     let paymentsEnabled: Bool
     let canBuyInBeta: Bool
+    let proSupportUrl: String?
     
     private enum PayWallState: Equatable {
         case ready // ready to buy
@@ -123,6 +345,8 @@ struct SGPayWallView: View {
     @State private var state: PayWallState = .ready
     @State private var showErrorAlert: Bool = false
     @State private var showConfetti: Bool = false
+    @State private var showDetails: Bool = false
+    @State private var shownFeature: SGProFeatureId? = nil
     
     private let productsPub = NotificationCenter.default.publisher(for: .SGIAPHelperProductsUpdatedNotification, object: nil)
     private let buyOrRestoreSuccessPub = NotificationCenter.default.publisher(for: .SGIAPHelperPurchaseNotification, object: nil)
@@ -133,6 +357,18 @@ struct SGPayWallView: View {
     
     @State private var hapticFeedback: HapticFeedback?
     private let confettiDuration: Double = 5.0
+    
+    @State private var purchaseSectionSize: CGSize = .zero
+    
+    private var features: [SGProFeature]  {
+        return [
+            SGProFeature(id: .backup, title: "PayWall.SessionBackup.Title".i18n(lang), subtitle: "PayWall.SessionBackup.Notice".i18n(lang), description: "PayWall.SessionBackup.Description".i18n(lang)),
+            SGProFeature(id: .filter, title: "PayWall.MessageFilter.Title".i18n(lang), subtitle: "PayWall.MessageFilter.Notice".i18n(lang), description: "PayWall.MessageFilter.Description".i18n(lang)),
+            SGProFeature(id: .notifications, title: "PayWall.Notifications.Title".i18n(lang), subtitle: "PayWall.Notifications.Notice".i18n(lang), description: "PayWall.Notifications.Description".i18n(lang)),
+            SGProFeature(id: .toolbar, title: "PayWall.InputToolbar.Title".i18n(lang), subtitle: "PayWall.InputToolbar.Notice".i18n(lang), description: "PayWall.InputToolbar.Description".i18n(lang)),
+            SGProFeature(id: .icons, title: "PayWall.AppIcons.Title".i18n(lang), subtitle: "PayWall.AppIcons.Notice".i18n(lang), description: nil)
+        ]
+    }
     
     var body: some View {
         ZStack {
@@ -178,15 +414,24 @@ struct SGPayWallView: View {
                         
                         
                         // Spacer for purchase buttons
-                        Color.clear.frame(height: 50)
+                        Color.clear.frame(height: (purchaseSectionSize.height / 2.0))
                     }
-                    .padding(.vertical, 50)
+                    .padding(.vertical, (purchaseSectionSize.height / 2.0))
                 }
                 .padding(.leading, max(innerShadowWidth + 8.0, sgLeftSafeAreaInset(containerViewLayout)))
                 .padding(.trailing, max(innerShadowWidth + 8.0, sgRightSafeAreaInset(containerViewLayout)))
                 
+                if showDetails {
+                    SGPayWallFeatureDetails(
+                        dismissAction: dismissDetails,
+                        bottomOffset: (purchaseSectionSize.height / 2.0)  * 0.9, // reduced offset for paginator
+                        features: features,
+                        shownFeature: shownFeature)
+                }
+
                 // Fixed purchase button at bottom
                 purchaseSection
+                    .trackSize($purchaseSectionSize)
             }
         }
         .confetti(isActive: $showConfetti, duration: confettiDuration)
@@ -248,37 +493,16 @@ struct SGPayWallView: View {
     
     private var featuresSection: some View {
         VStack(spacing: 8) {
-            FeatureRow(
-                icon: FeatureIcon(icon: "lock.fill", backgroundColor: .blue),
-                title: "PayWall.SessionBackup.Title".i18n(lang),
-                subtitle: "PayWall.SessionBackup.Notice".i18n(lang)
-            )
-            
-            FeatureRow(
-                icon: FeatureIcon(icon: "nosign", backgroundColor: .gray, fontWeight: .bold),
-                title: "PayWall.MessageFilter.Title".i18n(lang),
-                subtitle: "PayWall.MessageFilter.Notice".i18n(lang)
-            )
-            
-            FeatureRow(
-                icon: FeatureIcon(icon: "bell.badge.slash.fill", backgroundColor: .red),
-                title: "PayWall.Notifications.Title".i18n(lang),
-                subtitle: "PayWall.Notifications.Notice".i18n(lang)
-            )
-            
-            FeatureRow(
-                icon: FeatureIcon(icon: "bold.underline", backgroundColor: .blue, iconSize: 16),
-                title: "PayWall.InputToolbar.Title".i18n(lang),
-                subtitle: "PayWall.InputToolbar.Notice".i18n(lang)
-            )
-            
-            FeatureRow(
-                icon: Image("SwiftgramSettings")
-                    .resizable()
-                    .frame(width: 32, height: 32),
-                title: "PayWall.AppIcons.Title".i18n(lang),
-                subtitle: "PayWall.AppIcons.Notice".i18n(lang)
-            )
+            ForEach(features) { feature in
+                FeatureRow(
+                    icon: feature.icon,
+                    title: feature.title,
+                    subtitle: feature.subtitle,
+                    action: {
+                        showDetailsForFeature(feature.id)
+                    }
+                )
+            }
         }
     }
     
@@ -296,20 +520,36 @@ struct SGPayWallView: View {
     private var purchaseSection: some View {
         VStack(spacing: 0) {
             Divider()
-            
-            Button(action: handlePurchase) {
-                Text(buttonTitle)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(hex: accentColorHex))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            VStack(spacing: 8) {
+                Button(action: handlePurchase) {
+                    Text(buttonTitle)
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(hex: accentColorHex))
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                .disabled((state != .ready || !canPurchase) && !(currentStatus > 1))
+                .opacity(((state != .ready || !canPurchase) && !(currentStatus > 1)) ? 0.5 : 1.0)
+                
+                if let proSupportUrl = proSupportUrl {
+                    HStack(alignment: .center, spacing: 4) {
+                        Text("PayWall.ProSupport.Title".i18n(lang))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button(action: {
+                            openUrl(proSupportUrl, false)
+                        }) {
+                            Text("PayWall.ProSupport.Contact".i18n(lang))
+                                .font(.caption)
+                                .foregroundColor(Color(hex: accentColorHex))
+                        }
+                    }
+                }
             }
-            .disabled((state != .ready || !canPurchase) && !(currentStatus > 1))
-            .opacity(((state != .ready || !canPurchase) && !(currentStatus > 1)) ? 0.5 : 1.0)
             .padding([.horizontal, .top])
-            .padding(.bottom, sgBottomSafeAreaInset(containerViewLayout))
+            .padding(.bottom, sgBottomSafeAreaInset(containerViewLayout) + 2.0)
         }
         .foregroundColor(Color.black)
         .backgroundIfAvailable(material: .ultraThinMaterial)
@@ -324,7 +564,7 @@ struct SGPayWallView: View {
                     .tint(Color(hex: accentColorHex))
                     .foregroundColor(.secondary)
                     .environment(\.openURL, OpenURLAction { url in
-                        openUrl(url.absoluteString)
+                        openUrl(url.absoluteString, false)
                         return .handled
                     })
             } else {
@@ -333,14 +573,14 @@ struct SGPayWallView: View {
                     .foregroundColor(.secondary)
                 HStack(alignment: .top, spacing: 8) {
                     Button(action: {
-                        openUrl("PayWall.PrivacyURL".i18n(lang))
+                        openUrl("PayWall.PrivacyURL".i18n(lang), true)
                     }) {
                         Text("PayWall.Privacy".i18n(lang))
                             .font(.caption)
                             .foregroundColor(Color(hex: accentColorHex))
                     }
                     Button(action: {
-                        openUrl("PayWall.TermsURL".i18n(lang))
+                        openUrl("PayWall.TermsURL".i18n(lang), true)
                     }) {
                         Text("PayWall.Terms".i18n(lang))
                             .font(.caption)
@@ -369,7 +609,7 @@ struct SGPayWallView: View {
             }
             HStack {
                 Button(action: {
-                    openUrl("PayWall.About.SignatureURL".i18n(lang))
+                    openUrl("PayWall.About.SignatureURL".i18n(lang), false)
                 }) {
                     Text("PayWall.About.Signature".i18n(lang))
                         .font(.caption)
@@ -390,6 +630,8 @@ struct SGPayWallView: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle()) // Improve tappable area
         }
+        .disabled(showDetails)
+        .opacity(showDetails ? 0.0 : 1.0)
         .padding([.top, .trailing], 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
     }
@@ -424,6 +666,18 @@ struct SGPayWallView: View {
         } else {
             return product != nil
         }
+    }
+    
+    private func showDetailsForFeature(_ featureId: SGProFeatureId) {
+        if #available(iOS 14.0, *) {
+            shownFeature = featureId
+            showDetails = true
+        } // pagination is not available on iOS 13
+    }
+    
+    private func dismissDetails() {
+//        shownFeature = nil
+        showDetails = false
     }
     
     private func updateSelectedProduct() {
@@ -515,11 +769,10 @@ struct FeatureRow<IconContent: View>: View {
     let icon: IconContent
     let title: String
     let subtitle: String
+    let action: () -> Void
     
     var body: some View {
-        Button(action: {
-            // TODO(swiftgram): Feature row clarification
-        }) {
+        Button(action: action) {
             HStack(spacing: 16) {
                 
                 HStack(alignment: .top, spacing: 12) {
@@ -537,10 +790,11 @@ struct FeatureRow<IconContent: View>: View {
                 }
                 
                 Spacer()
-                // TODO(swiftgram): uncomment
-//                Image(systemName: "chevron.right")
-//                    .font(.system(size: 12, weight: .semibold))
-//                    .foregroundColor(.secondary)
+                if #available(iOS 14.0, *) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                } // Descriptions are not available on iOS 13
             }
             .padding()
             .background(
