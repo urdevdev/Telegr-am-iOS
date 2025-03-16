@@ -49,7 +49,7 @@ extension ChatControllerImpl {
                 }
             }
             var attemptSelectionImpl: ((EnginePeer, ChatListDisabledPeerReason) -> Void)?
-            let controller = self.context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: self.context, updatedPresentationData: self.updatedPresentationData, filter: filter, hasFilters: true, title: forceHideNames ? self.updatedPresentationData.0.strings.Conversation_ForwardOptions_HideSendersNames : nil, attemptSelection: { peer, _, reason in
+            let controller = self.context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: self.context, forceHideNames: forceHideNames, updatedPresentationData: self.updatedPresentationData, filter: filter, hasFilters: true, title: forceHideNames ? self.updatedPresentationData.0.strings.Conversation_ForwardOptions_HideSendersNames : nil, attemptSelection: { peer, _, reason in
                 attemptSelectionImpl?(peer, reason)
             }, multipleSelection: true, forwardedMessageIds: messages.map { $0.id }, selectForumThreads: true))
             let context = self.context
