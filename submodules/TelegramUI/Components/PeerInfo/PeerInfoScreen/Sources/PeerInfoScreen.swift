@@ -6924,7 +6924,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 }
                             })
                         })))
-
+                    }
                     // MARK: Swiftgram
                     if case .group = channel.info {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.GroupInfo_Administrators, icon: { theme in
