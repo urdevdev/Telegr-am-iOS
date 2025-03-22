@@ -1757,6 +1757,7 @@ private func infoItems(nearestChatParticipant: (String?, Int32?), showProfileId:
         let ItemMemberRequests = 8
         let ItemBalance = 9
         let ItemEdit = 10
+        let ItemSGRecentActions = 11
         
         if let _ = data.threadData {
             let mainUsername: String
@@ -1993,6 +1994,14 @@ private func infoItems(nearestChatParticipant: (String?, Int32?), showProfileId:
                     items[section]!.append(PeerInfoScreenDisclosureItem(id: ItemEdit, label: .none, text: settingsTitle, icon: UIImage(bundleImageName: "Chat/Info/SettingsIcon"), action: {
                         interaction.openEditing()
                     }))
+     
+                    // MARK: Swiftgram
+                    if channel.hasPermission(.banMembers) || channel.flags.contains(.isCreator) {
+                        items[section]!.append(PeerInfoScreenDisclosureItem(id: ItemSGRecentActions, label: .none, text: presentationData.strings.Group_Info_AdminLog, icon: UIImage(bundleImageName: "Chat/Info/RecentActionsIcon"), action: {
+                            interaction.openRecentActions()
+                        }))
+                    }
+                    //
                 }
             }
         }
@@ -6915,16 +6924,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 }
                             })
                         })))
-                        
+
                     // MARK: Swiftgram
-                    } else {
-                        items.append(.action(ContextMenuActionItem(text: presentationData.strings.Group_Info_AdminLog, icon: { theme in
-                            generateTintedImage(image: UIImage(bundleImageName: "Peer Info/RefProgram/IntroListEye"), color: theme.contextMenu.primaryColor)
-                        }, action: { [weak self] c, f in
-                            f(.dismissWithoutContent)
-                            self?.openRecentActions()
-                        })))
-                    }
                     if case .group = channel.info {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.GroupInfo_Administrators, icon: { theme in
                             generateTintedImage(image: UIImage(bundleImageName: "Chat List/ProxyShieldIcon"), color: theme.contextMenu.primaryColor)
