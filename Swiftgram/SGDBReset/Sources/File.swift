@@ -34,7 +34,7 @@ public func sgDBResetIfNeeded(databasePath: String, present: ((UIViewController)
     } catch {
         NSLog("[SG.DBReset] ERROR. Failed to reset database: \(error)")
         let failAlert = UIAlertController(
-            title: "ERROR. Failed to Reset Metadata",
+            title: "ERROR. Failed to Reset database",
             message: "\(error)",
             preferredStyle: .alert
         )
@@ -50,7 +50,7 @@ public func sgDBResetIfNeeded(databasePath: String, present: ((UIViewController)
 public func sgHardReset(dataPath: String, present: ((UIViewController) -> ())?) {
     let startAlert = UIAlertController(
         title: "ATTENTION",
-        message: "Confirm HARD RESET?",
+        message: "Confirm RESET ALL?",
         preferredStyle: .alert
     )
     
@@ -60,7 +60,7 @@ public func sgHardReset(dataPath: String, present: ((UIViewController) -> ())?) 
     startAlert.addAction(UIAlertAction(title: "RESET", style: .destructive) { _ in
         let ensureAlert = UIAlertController(
             title: "⚠️ ATTENTION ⚠️",
-            message: "ARE YOU SURE you want to make a HARD RESET?",
+            message: "ARE YOU SURE you want to make a RESET ALL?",
             preferredStyle: .alert
         )
         
@@ -68,9 +68,9 @@ public func sgHardReset(dataPath: String, present: ((UIViewController) -> ())?) 
             exit(0)
         })
         ensureAlert.addAction(UIAlertAction(title: "RESET NOW", style: .destructive) { _ in
-            NSLog("[SG.DBReset] Hard reset with system settings")
+            NSLog("[SG.DBReset] Reset All with system settings")
             let alert = UIAlertController(
-                title: "Hard reset.\nPlease wait...",
+                title: "Reset All.\nPlease wait...",
                 message: nil,
                 preferredStyle: .alert
             )
@@ -126,9 +126,9 @@ public func sgHardReset(dataPath: String, present: ((UIViewController) -> ())?) 
                 }
 
 
-                NSLog("[SG.DBReset] Done. Hard Reset completed")
+                NSLog("[SG.DBReset] Done. Reset All completed")
                 let successAlert = UIAlertController(
-                    title: "Hard reset completed",
+                    title: "Reset All completed",
                     message: nil,
                     preferredStyle: .alert
                 )
@@ -139,9 +139,9 @@ public func sgHardReset(dataPath: String, present: ((UIViewController) -> ())?) 
                     present?(successAlert)
                 }
             } catch {
-                NSLog("[SG.DBReset] ERROR. Hard reset failed: \(error)")
+                NSLog("[SG.DBReset] ERROR. Reset All failed: \(error)")
                 let failAlert = UIAlertController(
-                    title: "ERROR. Hard reset failed",
+                    title: "ERROR. Reset All failed",
                     message: "\(error)",
                     preferredStyle: .alert
                 )
