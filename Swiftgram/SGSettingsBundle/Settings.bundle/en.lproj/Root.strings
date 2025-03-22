@@ -1,8 +1,8 @@
 /* A single strings file, whose title is specified in your preferences schema. The strings files provide the localized content to display to the user for each of your preferences. */
 
 "Reset.Title" = "TROUBLESHOOTING";
-"Reset.Toggle" = "Reset metadata";
+"Reset.Toggle" = "Reset Metadata";
 "Reset.Notice" = "Use in case you're stuck and can't open the app. This WILL NOT logout your accounts, but all secret chats will be lost.";
 "HardReset.Title" = "";
-"HardReset.Toggle" = "Reset all";
+"HardReset.Toggle" = "Reset All";
 "HardReset.Notice" = "Clears metadata, cached messages and media for all accounts. This should not logout your accounts, but proceed at YOUR OWN RISK. All secret chats will be lost.";
