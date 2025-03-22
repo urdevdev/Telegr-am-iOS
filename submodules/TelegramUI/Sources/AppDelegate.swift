@@ -605,6 +605,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         let rootPath = rootPathForBasePath(appGroupUrl.path)
+        // MARK: Swiftgram
+        if UserDefaults.standard.bool(forKey: "sg_db_hard_reset") {
+            self.window?.makeKeyAndVisible()
+            sgHardReset(dataPath: rootPath, present: self.mainWindow?.presentNative)
+            return true
+        }
         performAppGroupUpgrades(appGroupPath: appGroupUrl.path, rootPath: rootPath)
         
         let deviceSpecificEncryptionParameters = BuildConfig.deviceSpecificEncryptionParameters(rootPath, baseAppBundleId: baseAppBundleId)
