@@ -403,6 +403,9 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                                 case "SGDucky":
                                     name = "Ducky"
                                     bordered = false
+                                case "SGDay":
+                                    name = "Day"
+                                    bordered = false
                                 case "BlueIcon":
                                     name = item.strings.Appearance_AppIconDefault
                                 case "BlackIcon":

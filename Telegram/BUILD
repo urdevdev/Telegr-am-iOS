@@ -342,7 +342,8 @@ alternate_icon_folders = [
     "SGBeta",
     "SGPro",
     "SGGold",
-    "SGDucky"
+    "SGDucky",
+    "SGDay"
 ]
 
 [
