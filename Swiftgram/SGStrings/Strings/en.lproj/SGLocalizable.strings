@@ -203,7 +203,7 @@
 
 "PayWall.Notifications.Title" = "Disable @mentions and replies";
 "PayWall.Notifications.Notice" = "Hide or mute non-important notifications.";
-"PayWall.Notifications.Description" = "No more Pinned Messages or @mentions when you need some piece of mind.";
+"PayWall.Notifications.Description" = "No more Pinned Messages or @mentions when you need some peace of mind.";
 
 "PayWall.InputToolbar.Title" = "Formatting Panel";
 "PayWall.InputToolbar.Notice" = "Bold, Italic, Links? Formatting with just a single tap.";
