@@ -206,7 +206,7 @@
 "PayWall.Notifications.Description" = "No more Pinned Messages or @mentions when you need some piece of mind.";
 
 "PayWall.InputToolbar.Title" = "Formatting Panel";
-"PayWall.InputToolbar.Notice" = "Save time formatting messages with just a single tap.";
+"PayWall.InputToolbar.Notice" = "Bold, Italic, Links? Formatting with just a single tap.";
 "PayWall.InputToolbar.Description" = "Apply and clear Formatting or insert new lines like a Pro.";
 
 "PayWall.AppIcons.Title" = "Unique App Icons";
