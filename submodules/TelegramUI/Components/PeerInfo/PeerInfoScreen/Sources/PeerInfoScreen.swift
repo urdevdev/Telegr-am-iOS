@@ -925,10 +925,14 @@ private func settingsItems(showProfileId: Bool, data: PeerInfoScreenData?, conte
                 }))
             }
             
-            items[.accounts]!.append(PeerInfoScreenActionItem(id: 100, text: presentationData.strings.Settings_AddAccount, icon: PresentationResourcesItemList.plusIconImage(presentationData.theme), action: {
-                interaction.openSettings(.addAccount)
-            }))
+//            items[.accounts]!.append(PeerInfoScreenActionItem(id: 100, text: presentationData.strings.Settings_AddAccount, icon: PresentationResourcesItemList.plusIconImage(presentationData.theme), action: {
+//                interaction.openSettings(.addAccount)
+//            }))
         }
+        // MARK: Swiftgram
+        items[.accounts]!.append(PeerInfoScreenActionItem(id: 1000, text: presentationData.strings.Settings_AddAccount, icon: PresentationResourcesItemList.plusIconImage(presentationData.theme), action: {
+            interaction.openSettings(.addAccount)
+        }))
         
         items[.myProfile]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_MyProfile, icon: PresentationResourcesSettings.myProfile, action: {
             interaction.openSettings(.profile)
