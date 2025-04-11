@@ -29,11 +29,13 @@ jobs:
           echo "Используется доступная версия Xcode: $(xcodebuild -version)"
           
           # Обновляем versions.json для совместимости с сборкой
-          # Сохраняем оригинальный ключ bazel
+          # Сохраняем оригинальные ключи bazel и macos
           ORIGINAL_BAZEL_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["bazel"]);')
+          ORIGINAL_MACOS_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["macos"]);')
           echo "Оригинальная версия Bazel: $ORIGINAL_BAZEL_VERSION"
-          echo "Обновляем versions.json (Xcode=15.2, Bazel=$ORIGINAL_BAZEL_VERSION)..."
-          echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$ORIGINAL_BAZEL_VERSION\"}" > versions.json
+          echo "Оригинальная версия macOS: $ORIGINAL_MACOS_VERSION"
+          echo "Обновляем versions.json (Xcode=15.2, Bazel=$ORIGINAL_BAZEL_VERSION, macOS=$ORIGINAL_MACOS_VERSION)..."
+          echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$ORIGINAL_BAZEL_VERSION\",\"macos\":\"$ORIGINAL_MACOS_VERSION\"}" > versions.json
           echo "Содержимое versions.json после обновления:"
           cat versions.json
 
