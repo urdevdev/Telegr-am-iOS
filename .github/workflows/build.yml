@@ -38,6 +38,11 @@ jobs:
           echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$CORRECT_BAZEL_VERSION_WITH_HASH\",\"macos\":\"$ORIGINAL_MACOS_VERSION\"}" > versions.json
           echo "Содержимое versions.json после обновления:"
           cat versions.json
+          
+      - name: Install Bazel
+        uses: bazelbuild/setup-bazel@v3
+        with:
+          bazel-version: 7.3.1
 
       - name: Create canonical source directory
         run: |
@@ -54,7 +59,7 @@ jobs:
           SOURCE_DIR=/Users/Shared/telegram-ios
 
           # use canonical bazel root
-          BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost"
+          # BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost" # Убрано, т.к. Bazel ставится явно
 
           cd $SOURCE_DIR
 
@@ -69,7 +74,7 @@ jobs:
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
           python3 -u build-system/Make/Make.py \
-            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            # --bazelUserRoot="$BAZEL_USER_ROOT" \ # Убрано, т.к. Bazel ставится явно
             --overrideXcodeVersion \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
