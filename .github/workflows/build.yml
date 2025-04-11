@@ -39,10 +39,21 @@ jobs:
           echo "Содержимое versions.json после обновления:"
           cat versions.json
           
-      - name: Install Bazel
-        uses: bazelbuild/setup-bazel@v3.0.0
-        with:
-          bazel-version: 7.3.1
+      - name: Manually Install Bazel
+        run: |
+          echo "Устанавливаем Bazel 7.3.1 вручную..."
+          mkdir -p ~/bin
+          
+          # Скачиваем Bazelisk вместо Bazel (он автоматически найдет нужную версию)
+          curl -Lo ~/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-darwin-amd64
+          chmod +x ~/bin/bazel
+          
+          # Добавляем в PATH
+          echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
+          
+          # Проверяем установку
+          echo "Установленная версия Bazel:"
+          ~/bin/bazel --version
 
       - name: Create canonical source directory
         run: |
@@ -58,9 +69,6 @@ jobs:
           # source code paths are included in the final binary, so we need to make them stable across builds
           SOURCE_DIR=/Users/Shared/telegram-ios
 
-          # use canonical bazel root
-          # BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost" # Убрано, т.к. Bazel ставится явно
-
           cd $SOURCE_DIR
 
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
@@ -74,7 +82,6 @@ jobs:
 
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
           python3 -u build-system/Make/Make.py \
-            # --bazelUserRoot="$BAZEL_USER_ROOT" \ # Убрано, т.к. Bazel ставится явно
             --overrideXcodeVersion \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
