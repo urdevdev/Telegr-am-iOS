@@ -29,13 +29,13 @@ jobs:
           echo "Используется доступная версия Xcode: $(xcodebuild -version)"
           
           # Обновляем versions.json для совместимости с сборкой
-          # Сохраняем оригинальные ключи bazel и macos
-          ORIGINAL_BAZEL_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["bazel"]);')
+          # Сохраняем оригинальные ключи bazel и macos, но используем правильный хэш для Bazel
           ORIGINAL_MACOS_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["macos"]);')
-          echo "Оригинальная версия Bazel: $ORIGINAL_BAZEL_VERSION"
+          CORRECT_BAZEL_VERSION_WITH_HASH="7.3.1:19c22c6095bbd9a65de93736883c89770c7f4e88935e8b7d682b0188bb515d93"
           echo "Оригинальная версия macOS: $ORIGINAL_MACOS_VERSION"
-          echo "Обновляем versions.json (Xcode=15.2, Bazel=$ORIGINAL_BAZEL_VERSION, macOS=$ORIGINAL_MACOS_VERSION)..."
-          echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$ORIGINAL_BAZEL_VERSION\",\"macos\":\"$ORIGINAL_MACOS_VERSION\"}" > versions.json
+          echo "Используемая версия Bazel с корректным хешем: $CORRECT_BAZEL_VERSION_WITH_HASH"
+          echo "Обновляем versions.json (Xcode=15.2, Bazel=$CORRECT_BAZEL_VERSION_WITH_HASH, macOS=$ORIGINAL_MACOS_VERSION)..."
+          echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$CORRECT_BAZEL_VERSION_WITH_HASH\",\"macos\":\"$ORIGINAL_MACOS_VERSION\"}" > versions.json
           echo "Содержимое versions.json после обновления:"
           cat versions.json
 
