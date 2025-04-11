@@ -39,28 +39,35 @@ jobs:
           echo "Содержимое versions.json после обновления:"
           cat versions.json
           
-      - name: Manually Install Bazel
-        run: |
-          echo "Устанавливаем Bazel 7.3.1 вручную..."
-          mkdir -p ~/bin
-          
-          # Скачиваем Bazelisk вместо Bazel (он автоматически найдет нужную версию)
-          curl -Lo ~/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-darwin-amd64
-          chmod +x ~/bin/bazel
-          
-          # Добавляем в PATH
-          echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
-          
-          # Проверяем установку
-          echo "Установленная версия Bazel:"
-          ~/bin/bazel --version
-
       - name: Create canonical source directory
         run: |
           set -x
           sudo mkdir -p /Users/Shared
           cp -R $GITHUB_WORKSPACE /Users/Shared/
           mv /Users/Shared/$(basename $GITHUB_WORKSPACE) /Users/Shared/telegram-ios
+
+      - name: Manually Install Bazel
+        run: |
+          echo "Устанавливаем Bazel 7.3.1 вручную в путь, ожидаемый скриптом..."
+          
+          # Создаем ожидаемую директорию
+          SOURCE_DIR=/Users/Shared/telegram-ios
+          BAZEL_DIR="$SOURCE_DIR/build-input"
+          mkdir -p "$BAZEL_DIR"
+          
+          # Скачиваем Bazelisk в ожидаемую директорию
+          curl -Lo "$BAZEL_DIR/bazel-7.3.1-darwin-x86_64" https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-darwin-amd64
+          chmod +x "$BAZEL_DIR/bazel-7.3.1-darwin-x86_64"
+          
+          # Проверяем установку
+          echo "Установленная версия Bazel:"
+          "$BAZEL_DIR/bazel-7.3.1-darwin-x86_64" --version
+          
+          # Также устанавливаем глобально для возможного использования в других местах
+          mkdir -p ~/bin
+          cp "$BAZEL_DIR/bazel-7.3.1-darwin-x86_64" ~/bin/bazel
+          chmod +x ~/bin/bazel
+          echo "PATH=$HOME/bin:$PATH" >> $GITHUB_ENV
 
       - name: Build the App
         run: |
@@ -83,6 +90,7 @@ jobs:
           python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
+            --bazel="$SOURCE_DIR/build-input/bazel-7.3.1-darwin-x86_64" \
             build \
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
