@@ -1,9 +1,10 @@
-name: CI
+name: iOS Build
 
 on:
-  # push:
-  #   branches: [ master ]
-
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -82,7 +83,7 @@ jobs:
           tag_name: build-${{ env.BUILD_NUMBER }}
           release_name: Telegram ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
           body: |
-            An unsigned build of Telegram for iOS ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
+            Telegram for iOS ${{ env.APP_VERSION }} (Build ${{ env.BUILD_NUMBER }})
           draft: false
           prerelease: false
 
