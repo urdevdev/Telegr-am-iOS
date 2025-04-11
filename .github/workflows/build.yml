@@ -19,18 +19,20 @@ jobs:
 
       - name: Set active Xcode path
         run: |
-          # Получаем требуемую версию Xcode из файла
-          XCODE_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["xcode"]);')
-          echo "Требуемая версия Xcode: $XCODE_VERSION"
+          # Напрямую используем доступную версию Xcode на macOS-13 раннере
+          # НЕ используем версию из versions.json
+          echo "Доступные версии Xcode:"
+          ls -la /Applications/ | grep Xcode
           
-          # Используем доступную версию Xcode на macOS-13 раннере
-          # macOS-13 обычно имеет Xcode 14.3.1, 15.0 или 15.2
-          # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
+          # Используем Xcode 15.2, который должен быть доступен на macOS-13
           sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
           echo "Используется доступная версия Xcode: $(xcodebuild -version)"
           
           # Обновляем versions.json для совместимости с сборкой
+          cat versions.json
+          echo "Обновляем versions.json..."
           echo '{"app":"10.5.0","xcode":"15.2"}' > versions.json
+          cat versions.json
 
       - name: Create canonical source directory
         run: |
@@ -67,7 +69,8 @@ jobs:
             --configurationPath="build-system/appstore-configuration.json" \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
-            --buildNumber="$BUILD_NUMBER"
+            --buildNumber="$BUILD_NUMBER" \
+            --overrideXcodeVersion
 
           # collect ipa
           OUTPUT_PATH="build/artifacts"
