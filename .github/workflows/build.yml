@@ -1,123 +1,126 @@
-  name: iOS Build
+name: iOS Build
 
-  on:
-    push:
-      branches: [ master ]
-    pull_request:
-      branches: [ master ]
-    workflow_dispatch:
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
 
-  jobs:
-    build:
-      runs-on: macos-13
+jobs:
+  build:
+    runs-on: macos-13
 
-      steps:
-        - uses: actions/checkout@v2
-          with:
-            submodules: 'recursive'
-            fetch-depth: '0'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          fetch-depth: '0'
 
-        - name: Set active Xcode path
-          run: |
-            # Напрямую используем доступную версию Xcode на macOS-13 раннере
-            # НЕ используем версию из versions.json
-            echo "Доступные версии Xcode:"
-            ls -la /Applications/ | grep Xcode
-            
-            # Используем Xcode 15.2, который должен быть доступен на macOS-13
-            sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
-            echo "Используется доступная версия Xcode: $(xcodebuild -version)"
-            
-            # Обновляем versions.json для совместимости с сборкой
-            cat versions.json
-            echo "Обновляем versions.json..."
-            echo '{"app":"10.5.0","xcode":"15.2"}' > versions.json
-            cat versions.json
+      - name: Set active Xcode path
+        run: |
+          # Напрямую используем доступную версию Xcode на macOS-13 раннере
+          # НЕ используем версию из versions.json для выбора Xcode
+          echo "Доступные версии Xcode:"
+          ls -la /Applications/ | grep Xcode
+          
+          # Используем Xcode 15.2, который должен быть доступен на macOS-13
+          sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+          echo "Используется доступная версия Xcode: $(xcodebuild -version)"
+          
+          # Обновляем versions.json для совместимости с сборкой
+          # Сохраняем оригинальный ключ bazel
+          ORIGINAL_BAZEL_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["bazel"]);')
+          echo "Оригинальная версия Bazel: $ORIGINAL_BAZEL_VERSION"
+          echo "Обновляем versions.json (Xcode=15.2, Bazel=$ORIGINAL_BAZEL_VERSION)..."
+          echo "{\"app\":\"10.5.0\",\"xcode\":\"15.2\",\"bazel\":\"$ORIGINAL_BAZEL_VERSION\"}" > versions.json
+          echo "Содержимое versions.json после обновления:"
+          cat versions.json
 
-        - name: Create canonical source directory
-          run: |
-            set -x
-            sudo mkdir -p /Users/Shared
-            cp -R $GITHUB_WORKSPACE /Users/Shared/
-            mv /Users/Shared/$(basename $GITHUB_WORKSPACE) /Users/Shared/telegram-ios
+      - name: Create canonical source directory
+        run: |
+          set -x
+          sudo mkdir -p /Users/Shared
+          cp -R $GITHUB_WORKSPACE /Users/Shared/
+          mv /Users/Shared/$(basename $GITHUB_WORKSPACE) /Users/Shared/telegram-ios
 
-        - name: Build the App
-          run: |
-            set -x
+      - name: Build the App
+        run: |
+          set -x
 
-            # source code paths are included in the final binary, so we need to make them stable across builds
-            SOURCE_DIR=/Users/Shared/telegram-ios
+          # source code paths are included in the final binary, so we need to make them stable across builds
+          SOURCE_DIR=/Users/Shared/telegram-ios
 
-            # use canonical bazel root
-            BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost"
+          # use canonical bazel root
+          BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost"
 
-            cd $SOURCE_DIR
+          cd $SOURCE_DIR
 
-            BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
+          BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
 
-            export APP_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["app"]);')
-            export COMMIT_COUNT=$(git rev-list --count HEAD)
-            export COMMIT_COUNT="$(($COMMIT_COUNT+$BUILD_NUMBER_OFFSET))"
-            export BUILD_NUMBER="$COMMIT_COUNT"
-            echo "BUILD_NUMBER=$(echo $BUILD_NUMBER)" >> $GITHUB_ENV
-            echo "APP_VERSION=$(echo $APP_VERSION)" >> $GITHUB_ENV
+          export APP_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["app"]);')
+          export COMMIT_COUNT=$(git rev-list --count HEAD)
+          export COMMIT_COUNT="$(($COMMIT_COUNT+$BUILD_NUMBER_OFFSET))"
+          export BUILD_NUMBER="$COMMIT_COUNT"
+          echo "BUILD_NUMBER=$(echo $BUILD_NUMBER)" >> $GITHUB_ENV
+          echo "APP_VERSION=$(echo $APP_VERSION)" >> $GITHUB_ENV
 
-            python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
-            python3 -u build-system/Make/Make.py \
-              --bazelUserRoot="$BAZEL_USER_ROOT" \
-              --overrideXcodeVersion \
-              build \
-              --configurationPath="build-system/appstore-configuration.json" \
-              --codesigningInformationPath=build-system/fake-codesigning \
-              --configuration=release_arm64 \
-              --buildNumber="$BUILD_NUMBER"
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+          python3 -u build-system/Make/Make.py \
+            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            --overrideXcodeVersion \
+            build \
+            --configurationPath="build-system/appstore-configuration.json" \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER"
 
-            # collect ipa
-            OUTPUT_PATH="build/artifacts"
-            rm -rf "$OUTPUT_PATH"
-            mkdir -p "$OUTPUT_PATH"
-            for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
-              cp "$f" $OUTPUT_PATH/
-            done
+          # collect ipa
+          OUTPUT_PATH="build/artifacts"
+          rm -rf "$OUTPUT_PATH"
+          mkdir -p "$OUTPUT_PATH"
+          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
+            cp "$f" $OUTPUT_PATH/
+          done
 
-            # collect dsym
-            mkdir -p build/DSYMs
-            for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/*.dSYM; do
-              cp -R "$f" build/DSYMs/
-            done
-            zip -r "./$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs 1>/dev/null
+          # collect dsym
+          mkdir -p build/DSYMs
+          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/*.dSYM; do
+            cp -R "$f" build/DSYMs/
+          done
+          zip -r "./$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs 1>/dev/null
 
-        - name: Create Release
-          id: create_release
-          uses: actions/create-release@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            tag_name: build-${{ env.BUILD_NUMBER }}
-            release_name: Telegram ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
-            body: |
-              Telegram for iOS ${{ env.APP_VERSION }} (Build ${{ env.BUILD_NUMBER }})
-            draft: false
-            prerelease: false
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: build-${{ env.BUILD_NUMBER }}
+          release_name: Telegram ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
+          body: |
+            Telegram for iOS ${{ env.APP_VERSION }} (Build ${{ env.BUILD_NUMBER }})
+          draft: false
+          prerelease: false
 
-        - name: Upload Release IPA
-          id: upload-release-ipa 
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.ipa
-            asset_name: Telegram.ipa
-            asset_content_type: application/zip
+      - name: Upload Release IPA
+        id: upload-release-ipa 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.ipa
+          asset_name: Telegram.ipa
+          asset_content_type: application/zip
 
-        - name: Upload Release DSYM
-          id: upload-release-dsym 
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.DSYMs.zip
-            asset_name: Telegram.DSYMs.zip
-            asset_content_type: application/zip
+      - name: Upload Release DSYM
+        id: upload-release-dsym 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.DSYMs.zip
+          asset_name: Telegram.DSYMs.zip
+          asset_content_type: application/zip
