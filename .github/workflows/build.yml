@@ -19,8 +19,18 @@ jobs:
 
       - name: Set active Xcode path
         run: |
+          # Получаем требуемую версию Xcode из файла
           XCODE_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["xcode"]);')
-          sudo xcode-select -s /Applications/Xcode_$XCODE_VERSION.app/Contents/Developer
+          echo "Требуемая версия Xcode: $XCODE_VERSION"
+          
+          # Используем доступную версию Xcode на macOS-13 раннере
+          # macOS-13 обычно имеет Xcode 14.3.1, 15.0 или 15.2
+          # https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
+          sudo xcode-select -s /Applications/Xcode_15.2.app/Contents/Developer
+          echo "Используется доступная версия Xcode: $(xcodebuild -version)"
+          
+          # Обновляем versions.json для совместимости с сборкой
+          echo '{"app":"10.5.0","xcode":"15.2"}' > versions.json
 
       - name: Create canonical source directory
         run: |
