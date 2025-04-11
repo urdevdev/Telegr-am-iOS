@@ -12,7 +12,7 @@ jobs:
     runs-on: macos-13
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
           fetch-depth: '0'
@@ -40,7 +40,7 @@ jobs:
           cat versions.json
           
       - name: Install Bazel
-        uses: bazelbuild/setup-bazel@v3.1.1
+        uses: bazelbuild/setup-bazel@v3.0.0
         with:
           bazel-version: 7.3.1
 
